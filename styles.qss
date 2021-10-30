@@ -1,0 +1,29 @@
+AccentColorWidget {background-color: rgba(@accent_color, @opacity)}
+
+QWidget {color: rgb(@accent_color)}
+
+AppMainWindow {background-color: rgb(@primary_color)}
+
+PrimaryColorWidget, QLineEdit, QTextEdit, QComboBox, QGroupBox, QDoubleSpinBox, QDateTimeEdit, QPushButton, QSlider::groove, QMenu, QAction {background-color: rgba(@primary_color, @opacity)}
+QSlider::handle {background-color: rgba(@accent_color, @opacity); height: 16px; width: 10px}
+
+QGroupBox {border: 2px solid rgb(@accent_color)}
+QLineEdit, QDoubleSpinBox, QTextEdit {border: 1px solid black}
+
+QTabBar::tab {background: rgb(@primary_color); padding: 7px; border-right: 1px solid rgb(@accent_color)}
+
+QTabBar::tab:selected {background: rgba(@accent_color, @opacity);}
+
+QTabWidget::pane {color: rgb(@accent_color)}
+
+QMessageBox {background: rgb(@primary_color)}
+
+InvisibleBackgroundWidget {background-color: transparent}
+
+HiddenLineEdit, UpdatingLineEdit {background-color: rgba(0, 0, 0, 0); border: 1px solid rgba(0, 0, 0, 0)}
+
+QScrollBar::horizontal {border: 0px solid #c6c6c6; background-color: rgba(@primary_color, @opacity); height: 10; }
+QScrollBar::vertical {border: 0px solid #c6c6c6; background-color: rgba(@primary_color, @opacity); width: 10; }
+QScrollBar::handle {margin: 0px 0px 0px 0px;}
+QScrollBar::sub-page,QScrollBar::add-page {background: rgb(@primary_color)}
+

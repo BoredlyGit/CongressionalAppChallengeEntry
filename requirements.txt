@@ -1,0 +1,4 @@
+PySide2
+requests==2.26.0
+SQLAlchemy==1.4.25
+qasync==0.22.0

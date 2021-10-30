@@ -1,0 +1,12 @@
+.idea
+*.sqlite3
+__pycache__
+venv/
+alembic/
+alembic.ini
+*.log
+qss_vars.json
+*.xcf
+video/
+plans.txt
+*.json
