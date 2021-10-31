@@ -1,4 +1,5 @@
 # Created by Nickolas Koe for the 2021 Congressional App Challenge
+# NOTE: Currently does not work with python 3.10 - pip has no available binaries for PySide2 for 3.10
 
 import asyncio
 import imaplib
