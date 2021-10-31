@@ -45,9 +45,10 @@ class EmailChecker:
         self.queue = queue.Queue()
         self.main_task = None
 
-        self.latest_checked_email_num = None
+        self.latest_checked_email_uid = None
         self.imap_conn = imaplib.IMAP4_SSL(self.IMAP_URL, 993)
-        self.imap_conn.login(self.EMAIL_ADDRESS, self.PWD)
+        print(self.imap_conn.login(self.EMAIL_ADDRESS, self.PWD))
+        # self.imap_conn.debug = 5
 
     def on_new_assignment(self, title, subject, date, description, **kwargs):
         raise NotImplementedError
@@ -124,49 +125,59 @@ class EmailChecker:
     def wait_for_emails(self):
         print(threading.active_count())
         logger.info(f"{'=' * 100}\nStarting!")
-        latest_message_num = int(self.imap_conn.select('INBOX')[1][0]) + 1
-        logger.info(f"Latest message in inbox: {latest_message_num}\n")
+        self.imap_conn.select('INBOX')
+        latest_email_uid = int(self.imap_conn.status("INBOX", '(UIDNEXT)')[1][0].decode().split("UIDNEXT")[1][:-1]) - 1
+        logger.info(f"Latest uid in inbox: {latest_email_uid} {type(latest_email_uid)}\n")
 
         engine = create_engine('sqlite:///db.sqlite3', echo=False)
         session = orm.sessionmaker(bind=engine)()
         session.expire_on_commit = False
 
         # SqlAlchemy objects can only be used in the thread they were created in, so gotta do this
-        self.latest_checked_email_num = session.query(Setting).filter(Setting.name == "email_latest_message_num").one_or_none()
-        print(self.latest_checked_email_num)
-        if self.latest_checked_email_num is None:
-            self.latest_checked_email_num = Setting(name="email_latest_message_num", value=1)
-            session.add(self.latest_checked_email_num)
+        self.latest_checked_email_uid = session.query(Setting).filter(Setting.name == "email_latest_message_uid").one_or_none()
+        print(self.latest_checked_email_uid)
+
+        if self.latest_checked_email_uid is None:
+            self.latest_checked_email_uid = Setting(name="email_latest_message_uid", value=latest_email_uid)  # change value to 1 to check all emails.
+            session.add(self.latest_checked_email_uid)
             session.commit()
 
-        for i in range(int(self.latest_checked_email_num.value), latest_message_num):
+        print(list(range(int(self.latest_checked_email_uid.value) + 1, latest_email_uid + 1)))
+        for i in range(int(self.latest_checked_email_uid.value), latest_email_uid + 1):
             if self.is_stopped.is_set():
                 break
 
-            self.latest_checked_email_num.value = i
-            session.add(self.latest_checked_email_num)
+            self.latest_checked_email_uid.value = i
+            session.add(self.latest_checked_email_uid)
             session.commit()
 
+            print(f"Getting email uid: {i}")
             msg = email.message_from_bytes(
-                self.imap_conn.fetch(str(i), "(RFC822 BODY.PEEK[])")[1][0][1])
+                self.imap_conn.uid("fetch", str(i), "(RFC822 BODY.PEEK[])")[1][0][1])
+            print(i)
             try:
                 args = self.parse_email(msg)
                 self.queue.put(args)
             except AssertionError:
                 logger.info(f'''IGNORED: Subject: {[msg['subject']]} | Received {msg["Date"]}''')
             time.sleep(0.3)
+        latest_email_uid = int(self.latest_checked_email_uid.value)
 
         while not self.is_stopped.is_set():
-            msg = self.imap_conn.fetch(str(latest_message_num + 1), "(RFC822 BODY.PEEK[])")[1][0]
+            print(f"Trying email uid: {latest_email_uid + 1}")
+            msg = self.imap_conn.uid("fetch", str(latest_email_uid + 1), "(RFC822 BODY.PEEK[])")
+            print("e:", msg, type(msg), str(latest_email_uid + 1), latest_email_uid)
+            msg = msg[1][0]
             if msg is not None:
                 msg = msg[1]  # noqa
-
-                latest_message_num += 1
-                self.latest_checked_email_num.value = latest_message_num
-                session.add(self.latest_checked_email_num)
+                print(type(msg))
+                latest_email_uid += 1
+                self.latest_checked_email_uid.value = latest_email_uid
+                session.add(self.latest_checked_email_uid)
                 session.commit()
 
                 try:
+                    msg = email.message_from_bytes(msg)
                     args = self.parse_email(msg)
                     self.queue.put(args)
                 except AssertionError:
